@@ -7,9 +7,10 @@ import (
 
 type Database map[string]string
 
-func Init() Database {
-    db := make(Database)
-    return db
+var Db Database
+
+func Init() {
+    Db = make(Database)
 }
 
 func (db Database) Create(key string, value string) error {

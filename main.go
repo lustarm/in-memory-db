@@ -1,6 +1,7 @@
 package main
 
 import (
+	"imd/src/api"
 	"imd/src/db"
 	"log"
 )
@@ -8,19 +9,9 @@ import (
 func main() {
     // Init the DB
     log.Println("Initalizing IMD database")
-    db := db.Init()
+    db.Init()
 
-    err := db.Create("test", "hello")
-    if err != nil {
-        log.Fatalln(err.Error())
-    }
+    log.Println("Starting api")
+    api.StartApi()
 
-    test, err := db.Read("test")
-
-    if err != nil {
-        log.Fatalln(err.Error())
-        return
-    }
-
-    log.Println(test)
 }
