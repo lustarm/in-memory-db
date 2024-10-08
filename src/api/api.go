@@ -24,6 +24,11 @@ type ApiReadRequest struct {
     Key string `json:"key"`
 }
 
+type ApiUpdateRequest struct {
+    Key string `json:"key"`
+    UpdateValue string `json:"update_value"`
+}
+
 func StartApi() error {
     r := mux.NewRouter()
     r.HandleFunc("/", baseHandle)
@@ -52,7 +57,7 @@ func StartApi() error {
     // SIGKILL, SIGQUIT or SIGTERM (Ctrl+/) will not be caught.
     signal.Notify(c, os.Interrupt)
 
-    // Block until we receive our signal.
+    // Block until we receive our signal
     <-c
     // Create a deadline to wait for.
     ctx, cancel := context.WithTimeout(context.Background(), wait)
@@ -131,4 +136,21 @@ func readHandle(w http.ResponseWriter, r *http.Request) {
     }
 
     json.NewEncoder(w).Encode(jsonResp{"key" : t.Key, "value" : value})
+}
+
+func updateHandle(w http.ResponseWriter, r *http.Request) {
+    var t ApiUpdateRequest
+    json.NewDecoder(r.Body).Decode(&t)
+    if t.Key == "" || t.UpdateValue == "" {
+        json.NewEncoder(w).Encode(jsonResp{"error" : true, "message" : "key or update value is not valid"})
+        return
+    }
+
+    err := db.Db.Update(t.Key, t.UpdateValue)
+    if err != nil {
+        json.NewEncoder(w).Encode(jsonResp{"error" : true, "message" : err.Error()})
+        return
+    }
+
+    json.NewEncoder(w).Encode(jsonResp{"key" : t.Key, "value" : t.UpdateValue})
 }
