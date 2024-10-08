@@ -11,7 +11,6 @@ func main() {
     log.Println("Initalizing IMD database")
     db.Init()
 
-    log.Println("Starting api")
+    log.Println("Starting API")
     api.StartApi()
-
 }

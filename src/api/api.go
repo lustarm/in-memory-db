@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,10 +15,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type ApiRequest struct {
+    Key string `json:"key"`
+    Value string `json:"value"`
+}
+
 func StartApi() error {
     r := mux.NewRouter()
     r.HandleFunc("/", baseHandle)
-    r.HandleFunc("/create", createHandle)
+    r.HandleFunc("/create", createHandle).Methods("POST")
     r.HandleFunc("/read", readHandle)
 
     srv := &http.Server{
@@ -38,8 +42,6 @@ func StartApi() error {
     }()
 
     var wait time.Duration
-    flag.DurationVar(&wait, "graceful-timeout", time.Second * 15, "the duration for which the server gracefully wait for existing connections to finish - e.g. 15s or 1m")
-    flag.Parse()
 
     c := make(chan os.Signal, 1)
     // We'll accept graceful shutdowns when quit via SIGINT (Ctrl+C)
@@ -69,15 +71,30 @@ func baseHandle(w http.ResponseWriter, r *http.Request) {
 
 func createHandle(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
-    key := "test"
-    value := "test123"
-    err := db.Db.Create(key, value)
+
+    var t ApiRequest
+    
+    err := json.NewDecoder(r.Body).Decode(&t)
+
     if err != nil {
-        fmt.Fprintf(w, err.Error())
+        json.NewEncoder(w).Encode(jsonResp{"error" : true,
+            "message" : err.Error()})
         return
     }
 
-    fmt.Fprintf(w, "Created key " + key + " with value " + value)
+    if t.Key == "" || t.Value == ""{
+        json.NewEncoder(w).Encode(jsonResp{"error" : true, 
+            "message" : "Please provide a key and value to use"})
+        return
+    }
+    err = db.Db.Create(t.Key, t.Value)
+    if err != nil {
+        json.NewEncoder(w).Encode(jsonResp{"error" : true, "message" : err.Error()})
+        return
+    }
+
+    json.NewEncoder(w).Encode(jsonResp{"error" : false, 
+        "message" : "Created key '" + t.Key + "' with value '" + t.Value + "'"})
 }
 
 type jsonResp map[string]interface{}
