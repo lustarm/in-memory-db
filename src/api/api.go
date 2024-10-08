@@ -29,6 +29,10 @@ type ApiUpdateRequest struct {
     UpdateValue string `json:"update_value"`
 }
 
+type ApiDeleteRequest struct {
+    Key string `json:"key"`
+}
+
 func StartApi() error {
     r := mux.NewRouter()
     r.HandleFunc("/", baseHandle)
@@ -75,7 +79,7 @@ func StartApi() error {
 
 func baseHandle(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
-    fmt.Fprintf(w, "IMD In Memory Database!")
+    fmt.Fprintf(w, "IMD In Memory Database API v1")
 }
 
 func createHandle(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +139,7 @@ func readHandle(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    json.NewEncoder(w).Encode(jsonResp{"key" : t.Key, "value" : value})
+    json.NewEncoder(w).Encode(jsonResp{"error" : false, "key" : t.Key, "value" : value})
 }
 
 func updateHandle(w http.ResponseWriter, r *http.Request) {
@@ -152,5 +156,22 @@ func updateHandle(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    json.NewEncoder(w).Encode(jsonResp{"key" : t.Key, "value" : t.UpdateValue})
+    json.NewEncoder(w).Encode(jsonResp{"error" : false, "key" : t.Key, "value" : t.UpdateValue})
+}
+
+func deleteHandle(w http.ResponseWriter, r *http.Request) {
+    var t ApiDeleteRequest
+    json.NewDecoder(r.Body).Decode(&t)
+    if t.Key == "" {
+        json.NewEncoder(w).Encode(jsonResp{"error" : true, "message" : "key is not valid"})
+        return
+    }
+
+    err := db.Db.Delete(t.Key)
+    if err != nil {
+        json.NewEncoder(w).Encode(jsonResp{"error" : true, "message" : err.Error()})
+        return
+    }
+
+    json.NewEncoder(w).Encode(jsonResp{"error" : false, "message" : "Deleted key successfully"})
 }
