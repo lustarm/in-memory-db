@@ -15,9 +15,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type ApiRequest struct {
+type ApiCreateRequest struct {
     Key string `json:"key"`
     Value string `json:"value"`
+}
+
+type ApiReadRequest struct {
+    Key string `json:"key"`
 }
 
 func StartApi() error {
@@ -72,8 +76,8 @@ func baseHandle(w http.ResponseWriter, r *http.Request) {
 func createHandle(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
 
-    var t ApiRequest
-    
+    var t ApiCreateRequest
+
     err := json.NewDecoder(r.Body).Decode(&t)
 
     if err != nil {
@@ -83,17 +87,19 @@ func createHandle(w http.ResponseWriter, r *http.Request) {
     }
 
     if t.Key == "" || t.Value == ""{
-        json.NewEncoder(w).Encode(jsonResp{"error" : true, 
+        json.NewEncoder(w).Encode(jsonResp{"error" : true,
             "message" : "Please provide a key and value to use"})
         return
     }
+
     err = db.Db.Create(t.Key, t.Value)
+
     if err != nil {
         json.NewEncoder(w).Encode(jsonResp{"error" : true, "message" : err.Error()})
         return
     }
 
-    json.NewEncoder(w).Encode(jsonResp{"error" : false, 
+    json.NewEncoder(w).Encode(jsonResp{"error" : false,
         "message" : "Created key '" + t.Key + "' with value '" + t.Value + "'"})
 }
 
@@ -101,12 +107,28 @@ type jsonResp map[string]interface{}
 
 func readHandle(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
-    key := "test"
-    value, err := db.Db.Read(key)
+
+    var t ApiReadRequest
+
+    err := json.NewDecoder(r.Body).Decode(&t)
+
+    if err != nil {
+        json.NewEncoder(w).Encode(jsonResp{"error" : true,
+            "message" : err.Error()})
+        return
+    }
+
+    if t.Key == ""{
+        json.NewEncoder(w).Encode(jsonResp{"error" : true,
+            "message" : "Please provide a key to read"})
+        return
+    }
+
+    value, err := db.Db.Read(t.Key)
     if err != nil {
         json.NewEncoder(w).Encode(jsonResp{"error" : true, "message" : err.Error()})
         return
     }
 
-    json.NewEncoder(w).Encode(jsonResp{"key" : key, "value" : value})
+    json.NewEncoder(w).Encode(jsonResp{"key" : t.Key, "value" : value})
 }
